@@ -42,6 +42,6 @@ func MathPow() {
 	for v := range result {
 		sum += v
 	}
-
+	
 	fmt.Println(sum)
 }
