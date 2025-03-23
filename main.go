@@ -4,5 +4,6 @@ import "worker-pool/worker"
 
 func main() {
 	// worker.MathPow()
-	worker.DownloadFile()
+	// worker.DownloadFile()
+	worker.WordProcess()
 }
