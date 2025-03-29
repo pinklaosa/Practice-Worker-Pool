@@ -2,6 +2,7 @@ package worker
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -9,10 +10,10 @@ import (
 	"sync"
 )
 
-func csvWorker(files <-chan string, result chan<- int, wg *sync.WaitGroup) {
+func csvWorker(files <-chan string, dir string, result chan<- int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for file := range files {
-		open, err := os.Open(file)
+		open, err := os.Open(dir + file)
 		if err != nil {
 			continue
 		}
@@ -41,6 +42,14 @@ func csvWorker(files <-chan string, result chan<- int, wg *sync.WaitGroup) {
 
 }
 
+func collectorResult(total chan<- int, result <-chan int) {
+	sum := 0
+	for num := range result {
+		sum += num
+	}
+	total <- sum
+}
+
 func DataParallel() {
 	dir := "./assets/dataparallel/"
 	files, err := os.ReadDir(dir)
@@ -52,17 +61,28 @@ func DataParallel() {
 	w := 3
 	fileCH := make(chan string, len(files))
 	result := make(chan int)
+	total := make(chan int)
 
 	//producer
 	for _, file := range files {
-		fileCH <- file.Type().String()
+		fileCH <- file.Name()
 	}
 	close(fileCH)
 
 	for range w {
 		wg.Add(1)
-		go csvWorker(fileCH, result, &wg)
+		go csvWorker(fileCH, dir, result, &wg)
 	}
-	
 
+	go collectorResult(total, result)
+
+	go func() {
+		wg.Wait()
+		close(result)
+	}()
+
+	sum := <-total
+	fmt.Println("sum: " + fmt.Sprint(sum))
+
+	
 }
